@@ -1,0 +1,52 @@
+@startuml
+title Flow - Add Device
+participant App
+participant Wifi
+participant Device
+participant MQTT
+participant Server 
+participant IoTCore
+== Request Certificate and Keys ==
+App -> Server: Request new ceritificate 
+Server -> IoTCore: Request new certificate and keys
+IoTCore -> Server: Response new certificate and keys 
+Server -> App: Response new certificate and keys
+
+== Setup Device & Wifi==
+Device -> Device: Hold Button for 5s on Device\nto go to Smart Config Mode
+group App connect to Wifi
+  App -> Wifi:
+  App <- Wifi:
+end
+== Send the configure information to Device==
+App -> Device: Send WiFi name, WiFi Password, IoT Core certificate and private key
+Device -> App: Device confirm receive these configure information
+group Device connect to Wifi
+  Device -> Wifi:
+  Device <- Wifi:
+end
+
+== Device & App subscribe topic==
+group subscribe topic
+  App -> MQTT:
+  App <- MQTT:
+end
+
+group subscribe topic
+  Device -> MQTT:
+  Device <- MQTT:
+end
+
+== Wait for response from Device==
+App -> MQTT: Send request device's power state.
+MQTT -> Device: Forward message to device.
+Device -> MQTT: Reply message
+MQTT -> App: Forward message 
+
+== Save device registry into database ==
+App -> Server: Request add new device along with its userId and certificate.
+Server -> Server: Save device registry in to database
+Server -> IoTCore: Delete the current device's certificate if it existing.
+Server -> App: Response add device success
+
+@enduml

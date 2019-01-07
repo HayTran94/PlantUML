@@ -1,0 +1,59 @@
+@startuml flow update firmware
+(*)-->"Go to Device setting screen"
+--> "register notify updating firmware listener"
+--> "check new firmware from server"
+if "New firmware?" then
+--> [true] "click on button update firmware"
+--> "Send command update new firmware to device"
+if "success?" then
+--> [true] "waiting for device updating firmware" 
+if "receive notify updating firmware" then
+--> [success] "show firmware already up to date"
+else
+--> [failed] "show updating firmware failed"
+endif
+--> (*)
+else
+--> [false] "show updating firmware failed"
+-->(*)
+endif
+else 
+--> [false] "show firmware already up to date"
+endif
+-->(*)
+(*) -->  "Notify updating device firmware from device"
+if "success?" then
+--> [true] "update new firmware of device to server"
+--> "update current device firmware"
+--> "notify updating firmware of device successfully"
+-->(*)
+else
+--> [false] "notify updating firmware failed"
+--> (*)
+@enduml
+@startuml flow update firmware v2
+participant user 
+participant server 
+participant device 
+participant app 
+user -> app : Go to device setting screen
+== check new firmware from server ==
+app -> server : check new firmware version
+server -> app: new firmware version
+app -> app: waiting for update firmware
+server -> app: firmware already up to date
+app -> user: firmware already up to date
+== end ==
+== start update new firmware ==
+user -> app: click on update firmware button
+app -> device: send command update firmware
+device -> app: response command successfully
+app -> app: waiting for device updating firmware
+device -> app: response command failed
+app -> user: update firmware failed, please try again!
+device -> app: update firmware of device successfully
+app -> server: update firmware of device sucdesfully
+app -> user: update firmware successfully
+device --> app: update firmware failed
+app --> user: update user failed
+@enduml

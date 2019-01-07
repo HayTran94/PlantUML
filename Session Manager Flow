@@ -1,0 +1,21 @@
+@startuml
+
+(*)--> "Launch app"
+
+if "logged out" then 
+    --> [true] "Go to sign in screen"
+    --> "Sign In" 
+    --> "Upload token to server1"
+    --> "Go to main screen"
+else 
+    --> [false] "Go to main screen"   
+    --> "Check session if unexpired or not"
+    if "session expired" then 
+        --> [true] "Go to sign in screen"
+    else 
+        --> [false] "Upload token to server2"
+        --> "Continue process others tasks"
+       
+endif
+
+@enduml

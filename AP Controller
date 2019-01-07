@@ -1,0 +1,30 @@
+@startuml
+participant Client
+participant APController
+participant Websocket
+
+Client -> APController: request send command
+
+APController -> APController: transfer command to byte array
+
+APController -> Websocket: get socket state 
+
+Websocket -> APController: return socket state 
+
+alt socket is open 
+    APController -> Websocket: send byte array to socket
+    loop wait socket response 
+        alt data is sent 
+            Websocket -> APController: return data
+            APController -> Client: notify send data successfully
+        else timeout 
+            APController -> Client: notify send data failed
+        end 
+    end 
+else socket is close 
+    APController -> Websocket: open socket 
+    loop wait socket open 
+        
+    end 
+end 
+@enduml

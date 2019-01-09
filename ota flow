@@ -1,59 +1,74 @@
-@startuml flow update firmware
-(*)-->"Go to Device setting screen"
---> "register notify updating firmware listener"
---> "check new firmware from server"
-if "New firmware?" then
---> [true] "click on button update firmware"
---> "Send command update new firmware to device"
-if "success?" then
---> [true] "waiting for device updating firmware" 
-if "receive notify updating firmware" then
---> [success] "show firmware already up to date"
-else
---> [failed] "show updating firmware failed"
-endif
---> (*)
-else
---> [false] "show updating firmware failed"
--->(*)
-endif
-else 
---> [false] "show firmware already up to date"
-endif
--->(*)
-(*) -->  "Notify updating device firmware from device"
-if "success?" then
---> [true] "update new firmware of device to server"
---> "update current device firmware"
---> "notify updating firmware of device successfully"
--->(*)
-else
---> [false] "notify updating firmware failed"
---> (*)
-@enduml
+
 @startuml flow update firmware v2
 participant user 
-participant server 
-participant device 
 participant app 
+participant device 
+participant server 
 user -> app : Go to device setting screen
+note right
+get local timeout
+get current time
+commpare timeout and current time
+if current time - timeout < 10 munites => device is updating firmware
+end note
+alt device is updating firmware
+app -> app: waiting for updating firmware
+else check firmware from server
 == check new firmware from server ==
 app -> server : check new firmware version
-server -> app: new firmware version
-app -> app: waiting for update firmware
-server -> app: firmware already up to date
+app -> app: save timeout to local is 0
+alt new firmware
+server --> app: have new firmware
+app -> user: Please update new firmware
+loop
+app -> app: waiting for user updating firmware
+end
+else firmware already up to date
+server --> app: firmware already up to date
 app -> user: firmware already up to date
 == end ==
-== start update new firmware ==
+end
+end
+== start updating new firmware ==
 user -> app: click on update firmware button
 app -> device: send command update firmware
-device -> app: response command successfully
-app -> app: waiting for device updating firmware
-device -> app: response command failed
+alt response send command successfully
+device --> app: response command successfully 
+app --> app: save timeout to local
+loop
+app -> user: Please wait for about 10 minutes to update firmware
+app -> app: waiting for device updating firmware, timeout 10 minutes
+end
+else response send command failed
+device --> app: response command failed
 app -> user: update firmware failed, please try again!
-device -> app: update firmware of device successfully
-app -> server: update firmware of device sucdesfully
+end
+alt receive notify from device 
+alt success
+device --> app: update firmware of device successfully
+app -> server: update firmware of device to server
+app -> app: update new firmware for device
+app -> app: save timeout to local is 0
 app -> user: update firmware successfully
+else failed
 device --> app: update firmware failed
-app --> user: update user failed
+app -> app: save timeout to local is 0
+app -> user: update firmware failed
+end
+else app is killed while device is updating firmware
+user -> app: open app
+group when
+app -> device: send a command to device
+device --> app: response command with current firmare
+alt current firmware > firmware device from server 
+app -> server: request update new firmware of device to server
+app -> app: update new firmware for device
+app -> app: save timeout to local is 0
+end
+end
+else timeout 
+app -> user: update firmware failed, Please try again!
+app -> app: save timeout to local is 0
+end
+==end==
 @enduml

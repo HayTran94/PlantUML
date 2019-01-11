@@ -1,30 +1,46 @@
 @startuml
 participant Client
+participant SendingCommand 
 participant APController
 participant Websocket
 
+== Intital APController instance == 
+APController -> Websocket: 
+
+loop every 5s 
+    APController -> Websocket: get Websocket state
+    Websocket -> APController: return Websocket state 
+    alt Websocket is close 
+        APController -> Websocket: request open Websocket
+    end 
+end 
+
+== Client request send command == 
 Client -> APController: request send command
-
+APController -> SendingCommand: set requested send command as sending command
+activate SendingCommand #FFBBBB
 APController -> APController: transfer command to byte array
-
 APController -> Websocket: get socket state 
-
 Websocket -> APController: return socket state 
+loop if (SendingCommand != null && SendingCommand.state != RECEIVED)
+    alt socket is open 
+        APController -> Websocket: send byte array to socket
+        APController -> SendingCommand: set Command state is SENT 
+    else socket is close 
+        APController -> SendingCommand: set Command state is PENDING 
+    end
 
-alt socket is open 
-    APController -> Websocket: send byte array to socket
-    loop wait socket response 
-        alt data is sent 
-            Websocket -> APController: return data
-            APController -> Client: notify send data successfully
-        else timeout 
-            APController -> Client: notify send data failed
-        end 
+    alt SendingCommand reach time out
+        APController -> SendingCommand: reset sending command 
+        APController -> Client: send Command is fail
     end 
-else socket is close 
-    APController -> Websocket: open socket 
-    loop wait socket open 
-        
-    end 
+end  
+
+== Received data from Websocket == 
+Websocket -> APController: notify received command 
+alt if received command and sending command is same id 
+    APController -> SendingCommand: set Command sate is RECEIVED
+    deactivate SendingCommand 
+    APController -> Client: send Command is success
 end 
 @enduml
